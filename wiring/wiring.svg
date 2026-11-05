@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 250" font-family="system-ui, sans-serif" font-size="12">
+  <style>
+    .board { fill: #eef1f4; stroke: #556; stroke-width: 1.5; }
+    .lbl { fill: #223; } .mut { fill: #667; }
+    .wire { fill: none; stroke: #b5460f; stroke-width: 2; }
+    .ant { fill: none; stroke: #2f7d32; stroke-width: 2; }
+    .rf { fill: none; stroke: #667; stroke-width: 1.5; stroke-dasharray: 4 4; }
+    .pad { fill: #cfd6dd; stroke: #889; stroke-width: 1; }
+    @media (prefers-color-scheme: dark) {
+      .board { fill: #2a2f36; stroke: #9aa; } .lbl { fill: #e8e8e4; } .mut { fill: #9a9a92; }
+      .pad { fill: #3a414a; stroke: #778; }
+    }
+  </style>
+  <rect x="20" y="95" width="90" height="60" rx="6" class="board"/>
+  <text x="65" y="128" text-anchor="middle" class="lbl">Laptop</text>
+  <text x="65" y="144" text-anchor="middle" class="mut" font-size="10">Chrome / Edge</text>
+  <path d="M110 125 H 170" class="wire"/><text x="140" y="117" text-anchor="middle" class="mut" font-size="10">USB-C</text>
+  <rect x="170" y="90" width="130" height="75" rx="6" class="board"/>
+  <text x="235" y="114" text-anchor="middle" class="lbl" font-weight="600">XIAO ESP32-C3</text>
+  <text x="235" y="130" text-anchor="middle" class="mut" font-size="10">BRIDGE</text>
+  <text x="235" y="144" text-anchor="middle" class="mut" font-size="10">firmware/bridge</text>
+  <circle cx="235" cy="90" r="4" class="pad"/><path d="M235 90 V 66 h 28" class="ant"/><text x="268" y="63" class="mut" font-size="10">antenna</text>
+  <rect x="440" y="90" width="130" height="75" rx="6" class="board"/>
+  <text x="505" y="112" text-anchor="middle" class="lbl" font-weight="600">XIAO ESP32-C3</text>
+  <text x="505" y="128" text-anchor="middle" class="mut" font-size="10">TX (sender)</text>
+  <text x="505" y="142" text-anchor="middle" class="mut" font-size="10">button on D1</text>
+  <circle cx="505" cy="90" r="4" class="pad"/><path d="M505 90 V 66 h 28" class="ant"/><text x="538" y="63" class="mut" font-size="10">antenna</text>
+  <path d="M300 112 H 440" class="rf"/><text x="370" y="106" text-anchor="middle" class="mut" font-size="10">ESP-NOW, 2.4 GHz</text>
+  <rect x="500" y="185" width="70" height="35" rx="6" class="board"/><text x="535" y="206" text-anchor="middle" class="mut" font-size="10">USB power</text>
+  <path d="M505 165 V 202 H 500" class="wire"/>
+  <text x="440" y="235" class="mut" font-size="9">button: D1 to GND (internal pull-up)</text>
+</svg>
