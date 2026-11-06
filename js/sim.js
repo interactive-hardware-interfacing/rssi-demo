@@ -1,7 +1,7 @@
 'use strict';
 
 /*
- * sim.js — fake bridge for rssi-demo. Emits the shared line-JSON. RSSI falls
+ * sim.js — fake bridge for rssi-demo. Emits the bridge's line-JSON. RSSI falls
  * off with a simulated "distance" that you can drive from the page's own
  * Mark-distance flow isn't available offline, so instead the simulator slowly
  * sweeps RSSI up and down and drops more packets as the signal weakens, which

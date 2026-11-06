@@ -1,9 +1,8 @@
 # code.py — BRIDGE node for rssi-demo
 #
-# Same shared bridge format as packet-inspector-demo (see PROTOCOL.md): one
-# JSON line per received ESP-NOW packet over USB serial, plus idle heartbeats.
-# The only difference is the payload decoder, which here pulls out the TX
-# power the sender reported.
+# Prints one JSON line per received ESP-NOW packet over USB serial, plus idle
+# heartbeats (see PROTOCOL.md). The payload decoder pulls out the TX power
+# the sender reported.
 #
 # Line format:
 #   {"t":"pkt","seq":<u32|null>,"mac":"...","rssi":-42,"len":20,

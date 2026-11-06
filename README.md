@@ -28,6 +28,32 @@ Two XIAO ESP32-C3 boards with u.FL antennas:
 The button steps transmit power (“turn up the volume”). No wiring between the
 boards — they talk over the air. See [`wiring/`](wiring/) and [`PROTOCOL.md`](PROTOCOL.md).
 
+## Putting the firmware on the boards
+
+The page does it. Open the **Firmware** tab, plug in a XIAO ESP32-C3, click
+**Install bridge** or **Install TX**, pick the port. The page writes `code.py`
+through CircuitPython's raw REPL over Web Serial (the C3 has no `CIRCUITPY`
+drive, so this is the only USB path), verifies size and CRC32 on the board,
+reboots it, and waits for the firmware to announce itself.
+
+A board that has never run CircuitPython needs it installed once: download
+the `.bin` for the XIAO ESP32-C3 from
+[circuitpython.org](https://circuitpython.org/board/seeed_xiao_esp32c3/),
+pick it on the Firmware tab, click **Flash CircuitPython**. That path uses
+[esptool-js](https://github.com/espressif/esptool-js), kept in
+[`flasher/`](flasher/) under its own licence.
+
+## What's in the repo
+
+| Path | What it is |
+|---|---|
+| `index.html`, `css/`, `js/app.js` | The page: instrument, plus Hardware / Firmware / About views (`js/views.js`). |
+| `js/bridge.js`, `js/sim.js` | Web Serial reader for the bridge's line-JSON, and a simulator that walks a fake sender away. |
+| `js/install.js`, `js/device/` | The Firmware tab: CircuitPython raw REPL over Web Serial (write, verify, reboot). |
+| `flasher/` | CircuitPython flashing for a bare board (esptool-js). Apache-2.0, see `LICENSES.md`. |
+| `firmware/bridge/code.py`, `firmware/tx/code.py` | One CircuitPython file per role. |
+| `PROTOCOL.md`, `wiring/` | The serial contract and the hookup. |
+
 ## Run locally
 
 ```
@@ -43,4 +69,6 @@ Chrome or Edge on a laptop/desktop. The simulator works anywhere.
 
 ## License
 
-GPL-2.0 (see [`LICENSE`](LICENSE)). Maintained by [LC Linkous](https://github.com/LC-Linkous).
+GPL-2.0 (see [`LICENSE`](LICENSE)), except `flasher/`, which is Apache-2.0
+because it bundles esptool-js — see [`LICENSES.md`](LICENSES.md).
+Maintained by [LC Linkous](https://github.com/LC-Linkous).

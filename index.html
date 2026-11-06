@@ -5,21 +5,31 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Range &amp; RSSI</title>
 <meta name="description" content="Walk a XIAO ESP32-C3 away from a bridge and watch signal strength fall and packets drop: live RSSI, success rate, and a chart of signal vs distance, over Web Serial.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 <div class="wrap">
 
 <header>
+  <p class="eyebrow"><a href="https://interactive-hardware-interfacing.github.io/#wireless">Wireless communication</a> · demo</p>
   <h1>Range &amp; RSSI</h1>
   <p class="tag">Carry one board away from the other and watch the signal fade and packets start to drop.</p>
-  <nav>
-    <a href="#firmware">Firmware</a>
-    <a href="#about">About</a>
+  <nav aria-label="Page">
+    <a href="#" data-view="" aria-current="page">Instrument</a>
+    <a href="#hardware" data-view="hardware" aria-current="false">Hardware</a>
+    <a href="#firmware" data-view="firmware" aria-current="false">Firmware</a>
+    <a href="#about" data-view="about" aria-current="false">About</a>
+    <span class="navsep" aria-hidden="true"></span>
     <a href="https://github.com/interactive-hardware-interfacing/rssi-demo">Source</a>
     <a href="https://interactive-hardware-interfacing.github.io/">All tools</a>
   </nav>
 </header>
+
+<!-- ================= INSTRUMENT ================= -->
+<div id="instrument">
 
 <div class="bar">
   <button id="connect" class="primary">Connect bridge</button>
@@ -66,41 +76,36 @@
     the last couple of seconds and adds a bar. Press <strong>Reset run</strong> to start a fresh group.</p>
 </div>
 
-<div class="panel" style="margin-top:16px">
-  <h2>Serial log</h2>
+<div class="termpanel">
+  <div class="termbar"><span class="dots"><i></i><i></i><i></i></span><span>serial log · 115200 8N1</span></div>
   <div id="log"></div>
   <div class="logbar">
     <input id="logcmd" placeholder="Line sent to the bridge (ignored in simulator)">
-    <button id="logsend">Send</button>
+    <button id="logsend" class="small">Send</button>
   </div>
 </div>
 
-<!-- ================= ABOUT ================= -->
-<section class="doc" id="about">
-  <h2>About this demo</h2>
+</div><!-- /instrument -->
 
-  <h3>What it shows</h3>
-  <p>
-    A radio link doesn’t just get “quieter” with distance — it works, then falls off a cliff. One board
-    sends steadily; the other, plugged into the laptop, measures how strong each packet arrives
-    (<strong>RSSI</strong>, in dBm) and how many go missing. Walk the sender away and you can watch the
-    signal fade smoothly while delivery holds… until it suddenly doesn’t.
-  </p>
-  <p><strong>Try this during the tour:</strong> start close, press <strong>Mark distance</strong>, then walk to each
-    taped mark and mark again. The bar chart fills in. Press the button on the sender to drop the transmit
-    power and watch the whole curve shift in.</p>
+<!-- ================= HARDWARE ================= -->
+<section class="view" id="hardware" aria-label="Hardware" hidden>
+  <div class="viewhead">
+    <h2>Hardware</h2>
+    <p class="lede">Two boards, one button, and nothing between them but air.</p>
+    <button type="button" class="small" data-back>Back to instrument</button>
+  </div>
 
-  <h3>Hardware</h3>
+  <h3>Two roles</h3>
   <table>
     <tr><th>Role</th><th>Board</th><th>Extras</th><th>Power</th></tr>
-    <tr><td>Bridge (receiver)</td><td>XIAO ESP32-C3</td><td>u.FL antenna</td><td>Laptop USB-C</td></tr>
-    <tr><td>TX (sender)</td><td>XIAO ESP32-C3</td><td>u.FL antenna, pushbutton on D1</td><td>USB bank</td></tr>
+    <tr><td>Bridge (receiver)</td><td>XIAO ESP32-C3 running the <em>bridge</em> firmware</td><td>u.FL antenna</td><td>Laptop USB-C</td></tr>
+    <tr><td>TX (sender)</td><td>XIAO ESP32-C3 running the <em>TX</em> firmware</td><td>u.FL antenna, pushbutton on D1</td><td>USB bank</td></tr>
   </table>
-  <p class="tag">Give the sender a little enclosure or handle so a volunteer can carry it without touching the antenna.</p>
+  <p class="tag">Identical boards; the Firmware tab decides which is which. Give the sender a little enclosure or handle so a volunteer can carry it without touching the antenna.</p>
 
   <h3>Wiring</h3>
   <div class="wiringfig">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 250" font-family="system-ui, sans-serif" font-size="12">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 250" font-family="system-ui, sans-serif" font-size="12" role="img" aria-label="A laptop connected by USB-C to a XIAO ESP32-C3 bridge with an antenna. A second XIAO ESP32-C3, the TX sender, with an antenna, a button on D1, and a USB power bank, talks to the bridge over ESP-NOW at 2.4 GHz.">
       <style>
         .board { fill: var(--panel); stroke: var(--muted); stroke-width: 1.5; }
         .lbl { fill: var(--ink); } .mut { fill: var(--muted); }
@@ -121,7 +126,7 @@
       <rect x="440" y="90" width="130" height="75" rx="6" class="board"/>
       <text x="505" y="112" text-anchor="middle" class="lbl" font-weight="600">XIAO ESP32-C3</text>
       <text x="505" y="128" text-anchor="middle" class="mut" font-size="10">TX (sender)</text>
-      <text x="505" y="142" text-anchor="middle" class="mut" font-size="10">button on D1</text>
+      <text x="505" y="142" text-anchor="middle" class="mut" font-size="10">button on D1 · firmware/tx</text>
       <circle cx="505" cy="90" r="4" class="pad"/><path d="M505 90 V 66 h 28" class="ant"/><text x="538" y="63" class="mut" font-size="10">antenna</text>
       <path d="M300 112 H 440" class="rf"/><text x="370" y="106" text-anchor="middle" class="mut" font-size="10">ESP-NOW, 2.4 GHz</text>
       <rect x="500" y="185" width="70" height="35" rx="6" class="board"/><text x="535" y="206" text-anchor="middle" class="mut" font-size="10">USB power</text>
@@ -133,9 +138,95 @@
     <tr><th>Signal</th><th>Pin</th><th>Note</th></tr>
     <tr><td>Bridge USB</td><td>USB-C</td><td>To the laptop — the only required connection</td></tr>
     <tr><td>Antenna (both)</td><td>u.FL</td><td>Clip on firmly</td></tr>
-    <tr><td>Power button</td><td>D1 → GND</td><td>Momentary pushbutton; internal pull-up, no resistor needed</td></tr>
+    <tr><td>Power button</td><td>D1 → GND</td><td>Momentary pushbutton on the TX board; internal pull-up, no resistor. D1 is printed <em>1</em> / <em>A1</em>, second pin down the left header</td></tr>
     <tr><td>TX power</td><td>USB-C</td><td>USB bank so it’s portable</td></tr>
   </table>
+
+  <h3>Parts</h3>
+  <ul>
+    <li>2× Seeed XIAO ESP32-C3 with the u.FL antenna that ships with it.</li>
+    <li>One momentary pushbutton (any tactile switch) for the TX board.</li>
+    <li>USB-C data cable for the bridge (not charge-only), and a USB power bank with a second cable for the sender.</li>
+    <li>Tape for floor marks, and a tape measure.</li>
+  </ul>
+
+  <h3>Things that bite</h3>
+  <ul>
+    <li>A loose u.FL connector shows up as <strong>LINK LOST</strong> — check it first.</li>
+    <li>The XIAO’s antenna is directional-ish; how a volunteer holds the board changes RSSI. Fun to demo, worth knowing.</li>
+    <li>Both boards pin Wi-Fi channel 6; keep them matched.</li>
+    <li>If the chooser shows no port, the cable is the usual suspect — many USB-C cables are charge-only.</li>
+    <li>A board that won’t take firmware: hold <strong>BOOT</strong> (B), tap <strong>RESET</strong> (R), release BOOT, then try again.</li>
+  </ul>
+  <p class="tag">Pinout detail is in <a href="https://github.com/interactive-hardware-interfacing/rssi-demo/blob/main/wiring/wiring.md">wiring/wiring.md</a>.</p>
+</section>
+
+<!-- ================= FIRMWARE ================= -->
+<section class="view" id="firmware" aria-label="Firmware" hidden>
+  <div class="viewhead">
+    <h2>Put the firmware on the boards</h2>
+    <p class="lede">Two roles, <code>bridge</code> and <code>TX</code>, each a single <code>code.py</code> written straight from this page. Chrome or Edge.</p>
+    <button type="button" class="small" data-back>Back to instrument</button>
+  </div>
+
+  <div class="steps">
+    <div class="step"><b>1. Plug in</b><p>Connect one XIAO ESP32-C3 over USB. If the instrument is connected to a board, this page disconnects it first.</p></div>
+    <div class="step"><b>2. Pick its job</b><p><b>Install bridge</b> for the board that will stay at the laptop and receive. <b>Install TX</b> for the board that gets the button and walks away. Pick the port named <em>USB JTAG/serial debug unit</em>.</p></div>
+    <div class="step"><b>3. Wait for the first line</b><p>The page writes <code>code.py</code> over CircuitPython’s REPL, checks its size and CRC on the board, reboots it, and waits for the firmware to announce itself. Then do the other board.</p></div>
+    <div class="step"><b>4. Connect</b><p>Back on the instrument, click <b>Connect bridge</b> and pick the bridge’s port. Power the TX board from a bank and the gauges come alive.</p></div>
+  </div>
+
+  <div class="panel fwpanel">
+    <div class="fwrow">
+      <button id="fwInstallBridge" class="primary">Install bridge</button>
+      <button id="fwInstallTx" class="primary">Install TX</button>
+      <span id="fwStatus" class="fwstatus">Ready. Plug a board in and pick its role.</span>
+    </div>
+    <progress id="fwBar" max="1" value="0" hidden></progress>
+    <div class="note" id="fwNoRepl" hidden>
+      <strong>No CircuitPython on that board.</strong> A XIAO ESP32-C3 fresh from the bag runs Seeed’s factory sketch, not CircuitPython. Install CircuitPython once with the button below, then come back to <b>Install bridge</b> or <b>Install TX</b>.
+    </div>
+    <div class="cpflash">
+      <h3>Bare board? Install CircuitPython first</h3>
+      <ol>
+        <li>Download the <b>.bin</b> (not the .uf2) for the XIAO ESP32-C3 from <a href="https://circuitpython.org/board/seeed_xiao_esp32c3/" target="_blank" rel="noopener">circuitpython.org</a>. The download site doesn’t let a page fetch it directly, so it’s a save-then-pick.</li>
+        <li><button id="cpLoad" class="small">Choose .bin…</button> <input type="file" id="cpFile" accept=".bin" hidden> <span id="cpName" class="tag">nothing chosen</span></li>
+        <li><button id="cpFlash" class="small" disabled>Flash CircuitPython</button> — erases the board and writes the image (about a minute). If the chip doesn’t answer, unplug, hold <b>BOOT</b> while plugging back in, and retry.</li>
+      </ol>
+      <p class="tag">This step uses <a href="https://github.com/espressif/esptool-js">esptool-js</a>, kept in <code>flasher/</code> under its own licence (Apache-2.0).</p>
+    </div>
+    <h3>Log</h3>
+    <div id="fwLog" class="fwlog" aria-live="polite"></div>
+  </div>
+
+  <details>
+    <summary>Doing it by hand instead</summary>
+    <ul>
+      <li><strong>Thonny:</strong> Tools → Options → Interpreter → <em>CircuitPython (generic)</em>, pick the port, open <code>firmware/bridge/code.py</code> or <code>firmware/tx/code.py</code>, then File → Save as… → <em>CircuitPython device</em>, name it <code>code.py</code>.</li>
+      <li><strong>CircuitPython from a terminal:</strong> <code>pip install esptool</code>, then <code>esptool.py --chip esp32c3 --port COMn erase_flash</code> and <code>esptool.py --chip esp32c3 --port COMn write_flash 0x0 adafruit-circuitpython-seeed_xiao_esp32c3-en_US-&lt;version&gt;.bin</code>.</li>
+      <li>The REPL exchange the page uses is written out in <a href="https://github.com/interactive-hardware-interfacing/rssi-demo/blob/main/PROTOCOL.md">PROTOCOL.md</a>.</li>
+    </ul>
+  </details>
+</section>
+
+<!-- ================= ABOUT ================= -->
+<section class="view" id="about" aria-label="About this demo" hidden>
+  <div class="viewhead">
+    <h2>About this demo</h2>
+    <p class="lede">What it shows, how to run it in front of a room, and where the numbers come from.</p>
+    <button type="button" class="small" data-back>Back to instrument</button>
+  </div>
+
+  <h3>What it shows</h3>
+  <p>
+    A radio link doesn’t just get “quieter” with distance — it works, then falls off a cliff. One board
+    sends steadily; the other, plugged into the laptop, measures how strong each packet arrives
+    (<strong>RSSI</strong>, in dBm) and how many go missing. Walk the sender away and you can watch the
+    signal fade smoothly while delivery holds… until it suddenly doesn’t.
+  </p>
+  <p><strong>Try this during the tour:</strong> start close, press <strong>Mark distance</strong>, then walk to each
+    taped mark and mark again. The bar chart fills in. Press the button on the sender to drop the transmit
+    power and watch the whole curve shift in.</p>
 
   <h3>How it works</h3>
   <p>
@@ -143,37 +234,36 @@
     this page averages a sliding window for the gauges and bins it by the distance you mark. Pressing the
     sender’s button sets <code>wifi.radio.tx_power</code>; the firmware reads back the <em>actual</em> value the
     radio accepted and puts it in the packet, so the TX-power readout is real, not what we asked for.
-    Same bridge serial format as the rest of the family (see
-    <a href="https://github.com/interactive-hardware-interfacing/rssi-demo/blob/main/PROTOCOL.md">PROTOCOL.md</a>).
+    The line format is in
+    <a href="https://github.com/interactive-hardware-interfacing/rssi-demo/blob/main/PROTOCOL.md">PROTOCOL.md</a>.
   </p>
   <p><strong>Known quirks:</strong></p>
   <ul>
     <li>RSSI is noisy — that’s real, not a bug. The sliding-window average smooths it for the gauges.</li>
-    <li>The XIAO’s u.FL antenna is directional-ish; how you hold the board changes RSSI. Fun to demo, worth knowing.</li>
-    <li>If the antenna is loose you’ll see LINK LOST. Check the u.FL first.</li>
-    <li>Both boards pin channel 6; keep them matched.</li>
-    <li>Flashing stuck? Hold <strong>BOOT</strong>, tap <strong>RESET</strong>, release <strong>BOOT</strong>.</li>
+    <li>The simulator’s <strong>Step power</strong> button stands in for the real button on the TX board; with hardware, press the board’s button.</li>
+    <li>LINK LOST means no packet for about a second; it clears on the next one.</li>
   </ul>
-</section>
 
-<!-- ================= FIRMWARE ================= -->
-<section class="doc" id="firmware">
-  <h2>Put the firmware on the boards</h2>
-  <p>One-time step per board. Both run <strong>CircuitPython</strong>; you copy a <code>code.py</code> onto each.</p>
-  <ol class="steps">
-    <li><strong>Install CircuitPython</strong> on each XIAO ESP32-C3 if needed (<a href="https://circuitpython.org/board/seeed_xiao_esp32c3/">board page</a>).</li>
-    <li><strong>Bridge board:</strong> copy <code>firmware/bridge/code.py</code>. Plug this one into the laptop.</li>
-    <li><strong>TX board:</strong> copy <code>firmware/tx/code.py</code>, wire a pushbutton from <strong>D1</strong> to <strong>GND</strong>, power from a USB bank.</li>
-    <li><strong>Connect.</strong> Click <strong>Connect bridge</strong> and pick the <em>USB JTAG/serial</em> port.</li>
-  </ol>
-  <p class="tag">Identical hardware except the TX board’s button. Label them, keep pre-flashed spares.</p>
+  <h3>The pieces</h3>
+  <table>
+    <tr><th>Part</th><th>What it is</th></tr>
+    <tr><td><code>index.html</code>, <code>css/</code>, <code>js/</code></td><td>This page. No build step, no framework; view source and you have it.</td></tr>
+    <tr><td><code>js/app.js</code></td><td>Gauges, the RSSI trace, and the distance bar chart.</td></tr>
+    <tr><td><code>js/bridge.js</code>, <code>js/sim.js</code></td><td>Web Serial reader for the bridge’s line-JSON, and a simulator that walks a fake sender away.</td></tr>
+    <tr><td><code>js/device/</code>, <code>flasher/</code></td><td>The Firmware tab: CircuitPython raw REPL, and esptool-js for bare boards.</td></tr>
+    <tr><td><code>firmware/bridge/</code>, <code>firmware/tx/</code></td><td>One CircuitPython file per role.</td></tr>
+    <tr><td><code>PROTOCOL.md</code>, <code>wiring/</code></td><td>The serial contract and the hookup.</td></tr>
+  </table>
+  <p class="tag">Part of <a href="https://interactive-hardware-interfacing.github.io/">Interactive Hardware Interfacing</a>.
+    GPL-2.0, except <code>flasher/</code> (Apache-2.0) — see <a href="https://github.com/interactive-hardware-interfacing/rssi-demo/blob/main/LICENSES.md">LICENSES.md</a>.</p>
 </section>
 
 <footer>
-  Range &amp; RSSI v0.1.0 · Last updated 2026-11-04 · Part of
+  Range &amp; RSSI v0.2.0 · Last updated 2026-11-06 · Part of
   <a href="https://interactive-hardware-interfacing.github.io/">Interactive Hardware Interfacing</a>.
   Works in Chrome and Edge via Web Serial.
-  <a href="https://github.com/interactive-hardware-interfacing/rssi-demo/blob/main/LICENSE">GPL-2.0</a>.
+  <a href="https://github.com/interactive-hardware-interfacing/rssi-demo/blob/main/LICENSE">GPL-2.0</a>, except <code>flasher/</code> —
+  see <a href="https://github.com/interactive-hardware-interfacing/rssi-demo/blob/main/LICENSES.md">LICENSES.md</a>.
   Maintained by <a href="https://github.com/LC-Linkous">LC Linkous</a>.
 </footer>
 

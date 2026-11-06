@@ -12,11 +12,25 @@
 
 import { Bridge } from './bridge.js';
 import { SimBridge } from './sim.js';
+import { initViews } from './views.js';
+import { initInstall } from './install.js';
 
 const $ = s => document.querySelector(s);
 const logEl = $('#log');
 function log(t) { logEl.textContent += t; if (logEl.textContent.length > 20000) logEl.textContent = logEl.textContent.slice(-15000); logEl.scrollTop = logEl.scrollHeight; }
 function cssVar(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+
+// Size a canvas bitmap to its on-screen size × devicePixelRatio so lines and
+// labels stay crisp; CSS controls the layout size. Returns CSS-pixel W/H and
+// leaves the context scaled so drawing code works in CSS pixels.
+function fitCanvas(canvas, ctx) {
+  const dpr = window.devicePixelRatio || 1;
+  const w = Math.max(1, Math.round(canvas.clientWidth * dpr));
+  const h = Math.max(1, Math.round(canvas.clientHeight * dpr));
+  if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { W: canvas.clientWidth, H: canvas.clientHeight };
+}
 
 let bridge = null, simulated = false;
 
@@ -36,11 +50,11 @@ let lastRssi = null, lastTxDbm = null;
 const tsCanvas = $('#series'), tsCtx = tsCanvas.getContext('2d');
 const tsData = []; const TS_MAX = 240;
 function drawSeries() {
-  const W = tsCanvas.width, H = tsCanvas.height;
+  const { W, H } = fitCanvas(tsCanvas, tsCtx);
   tsCtx.clearRect(0, 0, W, H);
   const lo = -100, hi = -20;
   // gridlines every 20 dB
-  tsCtx.strokeStyle = cssVar('--grid'); tsCtx.fillStyle = cssVar('--muted'); tsCtx.font = '10px system-ui';
+  tsCtx.strokeStyle = cssVar('--grid'); tsCtx.fillStyle = cssVar('--muted'); tsCtx.font = '11px system-ui, sans-serif';
   for (let db = lo; db <= hi; db += 20) {
     const y = H - (db - lo) / (hi - lo) * H;
     tsCtx.globalAlpha = 0.5; tsCtx.beginPath(); tsCtx.moveTo(0, y); tsCtx.lineTo(W, y); tsCtx.stroke(); tsCtx.globalAlpha = 1;
@@ -59,11 +73,12 @@ function drawSeries() {
 let marks = []; // {distance, avgRssi, successPct, n}
 const barCanvas = $('#bars'), barCtx = barCanvas.getContext('2d');
 function drawBars() {
-  const W = barCanvas.width, H = barCanvas.height, pad = 28;
+  const { W, H } = fitCanvas(barCanvas, barCtx), pad = 28;
   barCtx.clearRect(0, 0, W, H);
   if (!marks.length) {
-    barCtx.fillStyle = cssVar('--muted'); barCtx.font = '12px system-ui';
-    barCtx.fillText('Press “Mark distance” at each floor mark to build this chart.', pad, H / 2);
+    barCtx.fillStyle = cssVar('--muted'); barCtx.font = '12px system-ui, sans-serif';
+    barCtx.fillText('Press “Mark distance” at each floor mark', pad, H / 2 - 7);
+    barCtx.fillText('to build this chart.', pad, H / 2 + 9);
     return;
   }
   const n = marks.length, bw = (W - pad * 2) / n;
@@ -74,17 +89,17 @@ function drawBars() {
     const h = (Math.max(lo, Math.min(hi, m.avgRssi)) - lo) / (hi - lo) * (H - pad - 20);
     barCtx.fillStyle = cssVar('--accent');
     barCtx.fillRect(x, H - pad - h, w, h);
-    // loss overlay as a thin red cap proportional to loss%
-    const lossH = (100 - m.successPct) / 100 * (H - pad - 20);
-    barCtx.fillStyle = '#b03a3a';
-    barCtx.fillRect(x, H - pad - h - 6, w, 4);
-    barCtx.save(); barCtx.fillStyle = cssVar('--muted'); barCtx.font = '10px system-ui'; barCtx.textAlign = 'center';
+    // loss overlay: a thin red cap whose width is the share of packets lost
+    const lossFrac = Math.max(0, Math.min(1, (100 - m.successPct) / 100));
+    barCtx.fillStyle = cssVar('--err');
+    if (lossFrac > 0) barCtx.fillRect(x, H - pad - h - 6, w * lossFrac, 4);
+    barCtx.save(); barCtx.fillStyle = cssVar('--muted'); barCtx.font = '10px system-ui, sans-serif'; barCtx.textAlign = 'center';
     barCtx.fillText(m.distance, x + w / 2, H - pad + 12);
     barCtx.fillText(m.avgRssi.toFixed(0), x + w / 2, H - pad - h - 10);
     barCtx.restore();
   });
-  barCtx.fillStyle = cssVar('--muted'); barCtx.font = '10px system-ui';
-  barCtx.fillText('avg RSSI (bar) · loss cap in red', pad, 12);
+  barCtx.fillStyle = cssVar('--muted'); barCtx.font = '10px system-ui, sans-serif';
+  barCtx.fillText('avg RSSI (bar) · red cap = share of packets lost', pad, 12);
 }
 
 // ---- line handler ----
@@ -159,6 +174,18 @@ $('#logsend').addEventListener('click', async () => {
   if (simulated || !bridge) { log('(no command sent)\n'); return; }
   try { await bridge.send(cmd); log('→ ' + cmd + '\n'); } catch (e) { log('[error] ' + e.message + '\n'); }
 });
+
+// ---- doc views + firmware install ----
+const views = initViews(
+  $('#instrument'),
+  { hardware: $('#hardware'), firmware: $('#firmware'), about: $('#about') },
+  [...document.querySelectorAll('nav a[data-view]')],
+);
+initInstall({
+  installBridge: $('#fwInstallBridge'), installTx: $('#fwInstallTx'), status: $('#fwStatus'), bar: $('#fwBar'), log: $('#fwLog'), noRepl: $('#fwNoRepl'),
+  cpFile: $('#cpFile'), cpLoad: $('#cpLoad'), cpName: $('#cpName'), cpFlash: $('#cpFlash'),
+}, { releaseSerial: async () => { if (bridge && !simulated) await stop(); } });
+new ResizeObserver(() => { drawSeries(); drawBars(); }).observe(tsCanvas);
 
 if (!navigator.serial) $('#nowebserial').hidden = false;
 setStatus('Not connected', false); setLink(false);
