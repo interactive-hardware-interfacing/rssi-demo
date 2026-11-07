@@ -54,6 +54,22 @@ pick it on the Firmware tab, click **Flash CircuitPython**. That path uses
 | `firmware/bridge/code.py`, `firmware/tx/code.py` | One CircuitPython file per role. |
 | `PROTOCOL.md`, `wiring/` | The serial contract and the hookup. |
 
+## Logging data
+
+The **Data logging** panel records while connected (simulator included) and
+hands over one `.zip`: `packets.csv` (every packet: seq, RSSI, gap, TX
+power, CRC), `distance.csv` (every *Mark distance*: avg RSSI, success rate,
+counts), and `marks.csv` (labelled events from the **Mark** box — "antenna
+off", "door closed"). Nothing touches disk until you click Download.
+
+**Walk test** marks a distance automatically every 5–20 s and bumps the
+label by a fixed step, so one person can pace the hallway alone. The
+**free-space path-loss curve** (−20·log₁₀ d, fitted to the first mark) is
+drawn over the bars; the gap between it and the measurements is the room.
+
+**Presenter** (or press `P`) hides the log and settings and enlarges the
+charts and numbers for a projector. `Esc` leaves it; the choice is remembered.
+
 ## Run locally
 
 ```

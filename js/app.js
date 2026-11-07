@@ -14,6 +14,8 @@ import { Bridge } from './bridge.js';
 import { SimBridge } from './sim.js';
 import { initViews } from './views.js';
 import { initInstall } from './install.js';
+import { initPresenter } from './presenter.js';
+import { CaptureLogger, bindLogPanel } from './logger.js';
 
 const $ = s => document.querySelector(s);
 const logEl = $('#log');
@@ -48,7 +50,7 @@ let lastRssi = null, lastTxDbm = null;
 
 // ---- time series ----
 const tsCanvas = $('#series'), tsCtx = tsCanvas.getContext('2d');
-const tsData = []; const TS_MAX = 240;
+const tsData = []; const TS_MAX = 240; let tsCount = 0;
 function drawSeries() {
   const { W, H } = fitCanvas(tsCanvas, tsCtx);
   tsCtx.clearRect(0, 0, W, H);
@@ -60,6 +62,10 @@ function drawSeries() {
     tsCtx.globalAlpha = 0.5; tsCtx.beginPath(); tsCtx.moveTo(0, y); tsCtx.lineTo(W, y); tsCtx.stroke(); tsCtx.globalAlpha = 1;
     tsCtx.fillText(db + ' dBm', 4, y - 2);
   }
+  // labelled marks from the logging panel
+  tsCtx.save(); tsCtx.strokeStyle = cssVar('--magenta'); tsCtx.fillStyle = cssVar('--magenta'); tsCtx.font = '10px system-ui, sans-serif';
+  for (const m of markTicks) { const idx = m.at - (tsCount - tsData.length); if (idx < 0 || idx > tsData.length) continue; const x = idx / (TS_MAX - 1) * W; tsCtx.beginPath(); tsCtx.moveTo(x, 0); tsCtx.lineTo(x, H); tsCtx.stroke(); tsCtx.fillText(m.label, x + 3, 10); }
+  tsCtx.restore();
   tsCtx.strokeStyle = cssVar('--accent'); tsCtx.lineWidth = 1.5; tsCtx.beginPath();
   tsData.forEach((v, i) => {
     const x = i / (TS_MAX - 1) * W;
@@ -98,8 +104,28 @@ function drawBars() {
     barCtx.fillText(m.avgRssi.toFixed(0), x + w / 2, H - pad - h - 10);
     barCtx.restore();
   });
+  // Free-space path loss: RSSI(d) = RSSI(d0) - 20·log10(d/d0). Fitted to the
+  // first numeric mark, drawn behind the bars. The gap between the curve and
+  // the bars is the room: walls, bodies, reflections, antenna orientation.
+  const numeric = marks.map((m, i) => ({ i, d: parseFloat(m.distance), r: m.avgRssi })).filter(p => Number.isFinite(p.d) && p.d > 0);
+  if ($('#showmodel').checked && numeric.length >= 2) {
+    const ref = numeric[0];
+    barCtx.save(); barCtx.strokeStyle = cssVar('--yellow'); barCtx.setLineDash([6, 4]); barCtx.lineWidth = 2.5; barCtx.beginPath();
+    const dmin = numeric[0].d, dmax = numeric[numeric.length - 1].d;
+    for (let k = 0; k <= 40; k++) {
+      const d = dmin + (dmax - dmin) * k / 40;
+      const rssi = ref.r - 20 * Math.log10(d / ref.d);
+      // x: place by interpolating between bar centres so the curve lines up with the bars it describes
+      let x;
+      if (d <= dmin) x = pad + ref.i * bw + bw / 2;
+      else { let j = 0; while (j < numeric.length - 1 && numeric[j + 1].d < d) j++; const a = numeric[j], b = numeric[Math.min(j + 1, numeric.length - 1)]; const f = b.d === a.d ? 0 : (d - a.d) / (b.d - a.d); x = pad + (a.i + (b.i - a.i) * f) * bw + bw / 2; }
+      const y = H - pad - (Math.max(lo, Math.min(hi, rssi)) - lo) / (hi - lo) * (H - pad - 20);
+      k ? barCtx.lineTo(x, y) : barCtx.moveTo(x, y);
+    }
+    barCtx.stroke(); barCtx.restore();
+  }
   barCtx.fillStyle = cssVar('--muted'); barCtx.font = '10px system-ui, sans-serif';
-  barCtx.fillText('avg RSSI (bar) · red cap = share of packets lost', pad, 12);
+  barCtx.fillText('avg RSSI (bar) · red cap = share of packets lost' + ($('#showmodel').checked && numeric.length >= 2 ? ' · dashed = free-space model' : ''), pad, 12);
 }
 
 // ---- line handler ----
@@ -113,8 +139,9 @@ function onLine(obj) {
   lastRssi = typeof obj.rssi === 'number' ? obj.rssi : lastRssi;
   if (obj.fields && typeof obj.fields.tx_dbm === 'number') lastTxDbm = obj.fields.tx_dbm;
   recent.push({ rssi: lastRssi, lost: obj.gap || 0 });
+  logger.push('packets', [new Date().toISOString(), obj.seq, lastRssi, obj.gap || 0, lastTxDbm, obj.crc_ok === false ? 0 : 1]);
   while (recent.length > WIN) recent.shift();
-  tsData.push(lastRssi); while (tsData.length > TS_MAX) tsData.shift();
+  tsData.push(lastRssi); tsCount++; while (tsData.length > TS_MAX) tsData.shift();
 
   const s = windowStats();
   $('#rssi').textContent = lastRssi == null ? '—' : lastRssi;
@@ -126,7 +153,7 @@ function onLine(obj) {
 }
 
 // ---- controls ----
-function setStatus(t, c) { $('#status').textContent = t; $('#status').className = c ? 'ok' : ''; $('#connect').disabled = c; $('#sim').disabled = c; $('#disconnect').disabled = !c; $('#power').disabled = !c; }
+function setStatus(t, c) { if (!c && logger.recording) logger.stop(); paintLog(logger); $('#status').textContent = t; $('#status').className = c ? 'ok' : ''; $('#connect').disabled = c; $('#sim').disabled = c; $('#disconnect').disabled = !c; $('#power').disabled = !c; }
 
 async function start(useSim) {
   simulated = useSim;
@@ -140,24 +167,45 @@ async function start(useSim) {
     setStatus(useSim ? 'Simulator running' : 'Bridge connected', true);
   } catch (e) { log(`[error] ${e.message}\n`); setStatus(e.message, false); bridge = null; }
 }
-async function stop() { if (bridge) { try { await bridge.disconnect(); } catch {} } bridge = null; setStatus('Not connected', false); setLink(false); log('[disconnected]\n'); }
+async function stop() { walkStop(); if (bridge) { try { await bridge.disconnect(); } catch {} } bridge = null; setStatus('Not connected', false); setLink(false); log('[disconnected]\n'); }
 
 $('#connect').addEventListener('click', () => start(false));
 $('#sim').addEventListener('click', () => start(true));
 $('#disconnect').addEventListener('click', stop);
 
-$('#mark').addEventListener('click', () => {
+function markDistance(step = 5) {
   const dist = $('#distance').value.trim() || (marks.length + 1) + '';
   const s = windowStats();
-  if (s.avgRssi == null) { log('[mark] no packets yet\n'); return; }
+  if (s.avgRssi == null) { log('[mark] no packets yet\n'); return false; }
   marks.push({ distance: dist, avgRssi: s.avgRssi, successPct: s.successPct, n: s.recv });
   log(`[mark] ${dist}: avg ${s.avgRssi.toFixed(1)} dBm, ${s.successPct.toFixed(0)}% over ${s.recv} pkts\n`);
+  logger.push('distance', [new Date().toISOString(), dist, s.avgRssi, s.successPct, s.recv, s.lost, lastTxDbm]);
   drawBars();
   // bump the default next distance if it's a number
-  const num = parseFloat(dist); if (!Number.isNaN(num)) $('#distance').value = (num + 5) + '';
+  const num = parseFloat(dist); if (!Number.isNaN(num)) $('#distance').value = (num + step) + '';
+  return true;
+}
+$('#mark').addEventListener('click', () => markDistance(Number($('#walkstep').value) || 5));
+$('#showmodel').addEventListener('change', drawBars);
+
+// ---- walk test: one person, no helper. Marks itself every N seconds. ----
+let walkTimer = null, walkLeft = 0;
+function walkStop() { clearInterval(walkTimer); walkTimer = null; $('#walkcount').textContent = ''; $('#walkauto').checked = false; }
+$('#walkauto').addEventListener('change', () => {
+  if (!$('#walkauto').checked) { walkStop(); return; }
+  if (!bridge) { log('[walk] connect first\n'); $('#walkauto').checked = false; return; }
+  const every = Number($('#walkevery').value);
+  walkLeft = every;
+  log(`[walk] auto-marking every ${every} s — start walking\n`);
+  walkTimer = setInterval(() => {
+    walkLeft--;
+    $('#walkcount').textContent = walkLeft + 's';
+    if (walkLeft <= 0) { if (!markDistance(Number($('#walkstep').value) || 5)) log('[walk] no packets — link lost?\n'); walkLeft = every; }
+  }, 1000);
 });
 
 $('#resetrun').addEventListener('click', () => {
+  walkStop();
   marks = []; recent = []; tsData.length = 0;
   drawBars(); drawSeries();
   $('#rssi').textContent = '—'; $('#success').textContent = '—'; $('#succbar').style.width = '0%';
@@ -188,6 +236,22 @@ initInstall({
 new ResizeObserver(() => { drawSeries(); drawBars(); }).observe(tsCanvas);
 
 if (!navigator.serial) $('#nowebserial').hidden = false;
+
+// ---- presenter mode + data logging ----
+initPresenter($('#presenter'));
+const logger = new CaptureLogger({
+  packets:  ['iso_time', 'seq', 'rssi_dbm', 'gap', 'tx_dbm', 'crc_ok'],
+  distance: ['iso_time', 'distance', 'avg_rssi_dbm', 'success_pct', 'received', 'lost', 'tx_dbm'],
+}, 'rssi-demo');
+const paintLog = bindLogPanel(logger, $, {
+  isConnected: () => !!bridge,
+  meta: () => ({ source: simulated ? 'simulator' : 'board', notes: 'packets.csv: one row per received packet; gap = packets missing before it.\ndistance.csv: one row per Mark distance, averaged over the last ' + WIN + ' packets.' }),
+  log,
+});
+// marks also show on the time series as a tick
+const markTicks = [];
+window.addEventListener('logmark', e => { markTicks.push({ at: tsCount, label: e.detail.label }); drawSeries(); });
+
 setStatus('Not connected', false); setLink(false);
 drawBars(); drawSeries();
 log('Ready. "Try without hardware" for the simulator, or "Connect bridge".\n');
